@@ -11,33 +11,37 @@
         <title>Testirac</title>
     </head>
     <body>
-        <form action="index.php" method="post">
-            <label for="username_textbox">Username</label>
-            <input name="username_textbox">
-            <br>
-            
-            <label for="password_textbox">Password</label>
-            <input name="password_textbox">
-            <br>
+        <div class = "container">
+            <form action="index.php" method="post">
+                <div class = "row">
+                    <div class="input-field col s4 offset-s4">
+                        <input placeholder="Username" name="username_textbox" type="text" class="validate">
+                    </div>
+                </div>
+                <div class = "row">
+                    <div class="input-field col s4 offset-s4">
+                        <input placeholder="Password" name="password_textbox" type="text" class="validate">
+                    </div>
+                </div>
+                <div class="row">
+                    <button class="btn waves-effect waves-light col s2 offset-s5" type="submit" name="login_button" value="Login">Submit</button>
+                </div>
+            </form>
 
-            <input type="submit" name="login_button" value="Login">
-            <br>
-        </form>
-
-        <form action="index.php" method="post">
-            <label for="file_input"></label>
-            <input type="file" name="file_input">
-            <input type="submit" name="upload_button">Upload file</button>
-            <br>
-        </form>
-        
+            <form action="index.php" method="post">
+                <label for="file_input"></label>
+                <input type="file" name="file_input">
+                <input type="submit" name="upload_button">Upload file</button>
+                <br>
+            </form>
+        </div>
         <?php
             if ($_SERVER["REQUEST_METHOD"] == "POST")
             {
                 $server = "localhost";
                 $db_username = "root";
                 $db_password = "";
-                $db_name = "miloje"
+                $db_name = "miloje";
 
                 $connection = mysqli_connect($server, $db_username, $db_password, $db_name);
                 if (!$connection)
