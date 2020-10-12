@@ -28,12 +28,6 @@
                 </div>
             </form>
 
-            <form action="index.php" method="post">
-                <label for="file_input"></label>
-                <input type="file" name="file_input">
-                <input type="submit" name="upload_button">Upload file</button>
-                <br>
-            </form>
         </div>
         <?php
             if ($_SERVER["REQUEST_METHOD"] == "POST")
@@ -55,10 +49,12 @@
                 $sql = mysqli_query($connection,
                 "SELECT password FROM users WHERE username='$username'");
 
-                $get_password = mysqli_fetch_array($sql)["password"];
-
-                if($get_password == $password)
+                $row = mysqli_fetch_array($sql);
+                if ($row != NULL && $row["password"] == $password)
+                {
                     echo "Login succesful!";
+                    header("Location: upload.php");
+                }
                 else
                     echo "Incorrect username or password";
             }
