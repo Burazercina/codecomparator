@@ -9,8 +9,19 @@
     <form action="upload.php" method="post" enctype="multipart/form-data">
         <label for="upload[]"></label>
         <input type="file" name="upload[]" multiple="multiple">
-        <input type="submit" name="upload_button">Upload file</button>
-        <br>
+        <input type="submit" name="upload_button">
+        <input list="problems" name="problem_list">
+        <datalist id="problems">
+            <?php
+                include 'connect_to_db.php';
+                $query = "SELECT * FROM problems";
+                $result = sqlconnect($query);
+                while(mysqli_num_rows($result) > 0 && $row = mysqli_fetch_assoc($result))
+                {
+                    echo "<option value=\"" . $row["name"] . "\">";
+                }
+            ?>
+        </datalist>
     </form>
 
     <?php

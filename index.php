@@ -30,33 +30,25 @@
 
         </div>
         <?php
+            include 'connect_to_db.php';
             if ($_SERVER["REQUEST_METHOD"] == "POST")
-            {
-                $server = "localhost";
-                $db_username = "root";
-                $db_password = "";
-                $db_name = "miloje";
-
-                $connection = mysqli_connect($server, $db_username, $db_password, $db_name);
-                if (!$connection)
-                {
-                    die("Connection failed: " . mysqli_connect_error());
-                }
-                
+            {   
                 $username = $_POST["username_textbox"];
                 $password = $_POST["password_textbox"];
 
-                $sql = mysqli_query($connection,
-                "SELECT password FROM users WHERE username='$username'");
+                $sql = "SELECT password FROM users WHERE username='$username'";
 
-                $row = mysqli_fetch_array($sql);
-                if ($row != NULL && $row["password"] == $password)
+                $result = sqlconnect($sql);
+                while(mysqli_num_rows($result) > 0 && $row = mysqli_fetch_assoc($result))
                 {
-                    echo "Login succesful!";
-                    header("Location: upload.php");
+                    if ($row["password"] == $password)
+                    {
+                        echo "Login succesful!";
+                        header("Location: upload.php");
+                    }
+                    else
+                        echo "Incorrect username or password";
                 }
-                else
-                    echo "Incorrect username or password";
             }
         ?>
         <!--JavaScript at end of body for optimized loading-->
