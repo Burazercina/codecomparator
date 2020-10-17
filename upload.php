@@ -1,3 +1,4 @@
+<?php session_start(); ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -27,6 +28,18 @@
     <?php
         if ($_SERVER["REQUEST_METHOD"] == "POST")
         {
+            $selected_problem = $_POST["problem_list"];
+            $query = "SELECT id FROM problems WHERE name=\"$selected_problem\"";
+            $result = sqlconnect($query);
+            if (mysqli_num_rows($result) == 0)
+            {
+                $query_insert = "INSERT INTO problems VALUES (NULL, \"$selected_problem\")";
+                sqlconnect($query_insert);
+            }
+            
+            $result = sqlconnect($query);
+            $problem_id = mysqli_fetch_assoc($result)["id"];
+
             $total = count($_FILES['upload']['name']);
             for($i = 0; $i < $total; $i++)
             {
@@ -35,9 +48,23 @@
 
                 $target_dir;
                 if ($ext == "in")
-                    $target_dir = "inputs/";
+                {
+                    $target_dir = "inputs/$problem_id/";
+                    $query_insert = "INSERT INTO inputs VALUES (NULL, \"$problem_id\")";
+                    mkdir($target_dir);
+                    sqlconnect($query_insert);
+                }
                 else if ($ext == "cpp")
-                    $target_dir = "submissions/";
+                {
+                    $user_id = $_SESSION["user_id"];
+                    $target_dir = "submissions/$user_id/$problem_id/";
+                    if (!file_exists("submissions/$user_id/")) 
+                        mkdir("submissions/$user_id/");
+                    if (!file_exists($target_dir))
+                        mkdir($target_dir);
+                    $query_insert = "INSERT INTO submissions VALUES (NULL, \"$user_id\", \"$rand_string\", \"$problem_id\")";
+                    sqlconnect($query_insert);
+                }
                 else
                 {
                     echo "Smrt";

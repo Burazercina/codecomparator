@@ -1,3 +1,4 @@
+<?php session_start(); ?>
 <!DOCTYPE html>
 <html lang="en">
     <head>
@@ -34,6 +35,7 @@
             if ($_SERVER["REQUEST_METHOD"] == "POST")
             {   
                 $username = $_POST["username_textbox"];
+                $_SESSION["username"] = $username;
                 $password = $_POST["password_textbox"];
 
                 $sql = "SELECT password FROM users WHERE username='$username'";
@@ -43,6 +45,9 @@
                 {
                     if ($row["password"] == $password)
                     {
+                        $result = sqlconnect("SELECT id FROM users WHERE username=\"$username\"");
+                        $user_id = mysqli_fetch_assoc($result)["id"];
+                        $_SESSION["user_id"] = $user_id;
                         echo "Login succesful!";
                         header("Location: upload.php");
                     }
