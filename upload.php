@@ -51,7 +51,8 @@
                 {
                     $target_dir = "inputs/$problem_id/";
                     $query_insert = "INSERT INTO inputs VALUES (NULL, \"$problem_id\")";
-                    mkdir($target_dir);
+                    if (!file_exists($target_dir))
+                        mkdir($target_dir);
                     sqlconnect($query_insert);
                 }
                 else if ($ext == "cpp")
@@ -80,5 +81,64 @@
             }
         }
     ?>
+
+<table>
+        <tr>
+            <td>Inputs</td>
+            <?php
+                if ($_SERVER["REQUEST_METHOD"] == "POST")
+                {
+                    # print inputs
+                    $inputs_dir = "inputs/$problem_id/";
+                    $files = scandir($inputs_dir);
+                    foreach($files as $file)
+                    {
+                        if($file == '.' || $file == '..') continue;
+                        $dir = $inputs_dir . $file;
+                        $myfile = fopen($dir, "r") or die("Unable to open file!");
+                        echo "<td>";
+                        echo fread($myfile, filesize($dir));
+                        echo "</td>";
+                        fclose($myfile);
+                    }
+                }
+            ?>
+        </tr>
+        <?php
+            if ($_SERVER["REQUEST_METHOD"] == "POST")
+            {
+                # print output for each user
+                $submissions_dir = "submissions/";
+                $user_folders = scandir($submissions_dir);
+                foreach($user_folders as $folder)
+                {
+                    if($folder == '.' || $folder == '..') continue;
+                    echo "<tr>";
+                    echo "<td>";
+                    $query = "SELECT username FROM users WHERE id=\"$folder\"";
+                    $result = sqlconnect($query);
+                    $username = mysqli_fetch_assoc($result)["username"];
+                    echo $username;
+                    echo "</td>";
+                    $outputs_dir = $submissions_dir . $folder . "/" . $problem_id . "/";
+                    $outputs = scandir($outputs_dir);
+                    foreach($outputs as $output)
+                    {
+                        if($output == '.' || $output == '..') continue;
+                        $dir = $outputs_dir . $output;
+                        if (pathinfo($dir)["extension"] == "out")
+                        {
+                            $myfile = fopen($dir, "r") or die("Unable to open file!");
+                            echo "<td>";
+                            echo fread($myfile, filesize($dir));
+                            echo "</td>";
+                            fclose($myfile);
+                        }
+                    }
+                    echo "</tr>";
+                }
+            } 
+        ?>
+    </table>
 </body>
 </html>
