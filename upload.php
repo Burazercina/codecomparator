@@ -29,11 +29,13 @@
         if ($_SERVER["REQUEST_METHOD"] == "POST")
         {
             $selected_problem = $_POST["problem_list"];
+            $time_limit = 1; # Currently always 1
+            $memory_limit = 256; # Currently always 256 
             $query = "SELECT id FROM problems WHERE name=\"$selected_problem\"";
             $result = sqlconnect($query);
             if (mysqli_num_rows($result) == 0)
             {
-                $query_insert = "INSERT INTO problems VALUES (NULL, \"$selected_problem\")";
+                $query_insert = "INSERT INTO problems VALUES (NULL, \"$selected_problem\", \"$time_limit\", \"$memory_limit\")";
                 sqlconnect($query_insert);
             }
             
@@ -57,12 +59,27 @@
                 }
                 else if ($ext == "cpp")
                 {
+                    # Create directories for cpp submissions
                     $user_id = $_SESSION["user_id"];
                     $target_dir = "submissions/$user_id/$problem_id/";
                     if (!file_exists("submissions/$user_id/")) 
                         mkdir("submissions/$user_id/");
                     if (!file_exists($target_dir))
                         mkdir($target_dir);
+
+                    # Arguments for compilation script
+                    $source_path = $target_dir . $rand_string . "." . $ext;
+                    $inputs_folder = "inputs/$problem_id/";
+                    $output_path = $target_dir;
+                    $comments_path = $target_dir;
+                    $time_limit = 1; # Currently always 1 second, should fetch from database
+
+                    # Create batch file that runs command
+                    $batch = fopen("compile.bat", "w");
+                    $batch_command = "compile_and_run.py \"" . $source_path . "\" \"" . $inputs_folder . "\" \"" . $output_path . "\" \"" . $comments_path . "\" " . $time_limit;
+                    fwrite($batch, $batch_command);
+                    fclose($batch);
+
                     $query_insert = "INSERT INTO submissions VALUES (NULL, \"$user_id\", \"$rand_string\", \"$problem_id\")";
                     sqlconnect($query_insert);
                 }
@@ -77,6 +94,13 @@
                     echo "The file has been uploaded.";
                 } else {
                     echo "Sorry, there was an error uploading your file.";
+                }
+
+                # Execute batch
+                if (file_exists("compile.bat"))
+                {
+                    exec("compile.bat");
+                    unlink("compile.bat"); # Delete batch when finished running
                 }
             }
         }
@@ -121,18 +145,21 @@
                     echo $username;
                     echo "</td>";
                     $outputs_dir = $submissions_dir . $folder . "/" . $problem_id . "/";
-                    $outputs = scandir($outputs_dir);
-                    foreach($outputs as $output)
+                    if (file_exists($outputs_dir))
                     {
-                        if($output == '.' || $output == '..') continue;
-                        $dir = $outputs_dir . $output;
-                        if (pathinfo($dir)["extension"] == "out")
+                        $outputs = scandir($outputs_dir);
+                        foreach($outputs as $output)
                         {
-                            $myfile = fopen($dir, "r") or die("Unable to open file!");
-                            echo "<td>";
-                            echo fread($myfile, filesize($dir));
-                            echo "</td>";
-                            fclose($myfile);
+                            if($output == '.' || $output == '..') continue;
+                            $dir = $outputs_dir . $output;
+                            if (pathinfo($dir)["extension"] == "out")
+                            {
+                                $myfile = fopen($dir, "r") or die("Unable to open file!");
+                                echo "<td>";
+                                echo fread($myfile, filesize($dir));
+                                echo "</td>";
+                                fclose($myfile);
+                            }
                         }
                     }
                     echo "</tr>";
