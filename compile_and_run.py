@@ -42,6 +42,5 @@ def main():
             f = open(join(comments_path,output_file_name), "w+")
             f.write('TLE')
             f.close()
-
-
+    os.remove(exe_name + '.exe')
 main()

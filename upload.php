@@ -56,6 +56,45 @@
                     if (!file_exists($target_dir))
                         mkdir($target_dir);
                     sqlconnect($query_insert);
+                
+                    # Reevaluate exisiting submissions for new input file
+                    
+                    $target_file = $target_dir . $rand_string . '.' . $ext; // Example: submissions/iqwejvo.cpp
+                    if (move_uploaded_file($_FILES["upload"]["tmp_name"][$i], $target_file)) {
+                        echo "The file has been uploaded.";
+                    } else {
+                        echo "Sorry, there was an error uploading your file.";
+                    }
+
+                    $query = "SELECT id FROM users";
+                    $result = sqlconnect($query);
+                    while(mysqli_num_rows($result) > 0 && $row = mysqli_fetch_assoc($result))
+                    {
+                        $old_user_id = $row['id'];
+                        echo $old_user_id . ',';
+                        $old_submission = "submissions/$old_user_id/$problem_id/";
+                    
+                        $last_submission_query = "SELECT hash FROM submissions where id=(SELECT max(id) FROM submissions where user = '$old_user_id' and problem = '$problem_id')";
+                        $last_submission_result = sqlconnect($last_submission_query);
+                        $source_hash = mysqli_fetch_assoc($last_submission_result)["hash"];
+                        $source_path = $old_submission . $source_hash . ".cpp";
+                        $inputs_folder = "inputs/$problem_id/";
+                        $output_path = $old_submission;
+                        $comments_path = $old_submission;
+                        $time_limit = 1; # Currently always 1 second, should fetch from database
+
+                        # Create batch file that runs command
+                        $batch = fopen("compile.bat", "w");
+                        $batch_command = "compile_and_run.py \"" . $source_path . "\" \"" . $inputs_folder . "\" \"" . $output_path . "\" \"" . $comments_path . "\" " . $time_limit;
+                        fwrite($batch, $batch_command);
+                        fclose($batch);
+                        # Execute batch
+                        if (file_exists("compile.bat"))
+                        {
+                            exec("compile.bat");
+                            unlink("compile.bat"); # Delete batch when finished running
+                        }
+                    }
                 }
                 else if ($ext == "cpp")
                 {
@@ -82,25 +121,25 @@
 
                     $query_insert = "INSERT INTO submissions VALUES (NULL, \"$user_id\", \"$rand_string\", \"$problem_id\")";
                     sqlconnect($query_insert);
+                
+                    $target_file = $target_dir . $rand_string . '.' . $ext; // Example: submissions/iqwejvo.cpp
+                    if (move_uploaded_file($_FILES["upload"]["tmp_name"][$i], $target_file)) {
+                        echo "The file has been uploaded.";
+                    } else {
+                        echo "Sorry, there was an error uploading your file.";
+                    }
+    
+                    # Execute batch
+                    if (file_exists("compile.bat"))
+                    {
+                        exec("compile.bat");
+                        unlink("compile.bat"); # Delete batch when finished running
+                    }
                 }
                 else
                 {
                     echo "Smrt";
                     die();
-                }
-
-                $target_file = $target_dir . $rand_string . '.' . $ext; // Example: submissions/iqwejvo.cpp
-                if (move_uploaded_file($_FILES["upload"]["tmp_name"][$i], $target_file)) {
-                    echo "The file has been uploaded.";
-                } else {
-                    echo "Sorry, there was an error uploading your file.";
-                }
-
-                # Execute batch
-                if (file_exists("compile.bat"))
-                {
-                    exec("compile.bat");
-                    unlink("compile.bat"); # Delete batch when finished running
                 }
             }
         }
@@ -120,9 +159,10 @@
                         if($file == '.' || $file == '..') continue;
                         $dir = $inputs_dir . $file;
                         $myfile = fopen($dir, "r") or die("Unable to open file!");
-                        echo "<td>";
-                        echo fread($myfile, filesize($dir));
-                        echo "</td>";
+                        echo "<td><a href=\" $dir \">";
+                        $text = fread($myfile, filesize($dir));
+                        echo md5($text);
+                        echo "</a></td>";
                         fclose($myfile);
                     }
                 }
@@ -134,6 +174,8 @@
                 # print output for each user
                 $submissions_dir = "submissions/";
                 $user_folders = scandir($submissions_dir);
+                $outputs_map = array();
+
                 foreach($user_folders as $folder)
                 {
                     if($folder == '.' || $folder == '..') continue;
@@ -155,8 +197,15 @@
                             if (pathinfo($dir)["extension"] == "out")
                             {
                                 $myfile = fopen($dir, "r") or die("Unable to open file!");
-                                echo "<td>";
-                                echo fread($myfile, filesize($dir));
+                                $text = fread($myfile, filesize($dir));
+                                $hash = md5($text);
+                                if(!array_key_exists ($hash,$outputs_map))
+                                {
+                                    $outputs_map[$hash] = [rand(0,255),rand(0,255),rand(0,255)];
+                                }
+                                $color = $outputs_map[$hash];
+                                echo "<td style=\"background-color:rgb({$color[0]},{$color[1]},{$color[2]})\">";
+                                echo $text;
                                 echo "</td>";
                                 fclose($myfile);
                             }
