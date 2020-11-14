@@ -71,11 +71,14 @@
                     while(mysqli_num_rows($result) > 0 && $row = mysqli_fetch_assoc($result))
                     {
                         $old_user_id = $row['id'];
-                        echo $old_user_id . ',';
                         $old_submission = "submissions/$old_user_id/$problem_id/";
                     
                         $last_submission_query = "SELECT hash FROM submissions where id=(SELECT max(id) FROM submissions where user = '$old_user_id' and problem = '$problem_id')";
                         $last_submission_result = sqlconnect($last_submission_query);
+						if (mysqli_num_rows($last_submission_result) == 0)
+						{
+							continue;
+						}
                         $source_hash = mysqli_fetch_assoc($last_submission_result)["hash"];
                         $source_path = $old_submission . $source_hash . ".cpp";
                         $inputs_folder = "inputs/$problem_id/";
@@ -174,18 +177,17 @@
                 # print output for each user
                 $submissions_dir = "submissions/";
                 $user_folders = scandir($submissions_dir);
-                $outputs_map = array();
+                $outputs_matrix = array();
+                $color_matrix = array();
 
                 foreach($user_folders as $folder)
                 {
                     if($folder == '.' || $folder == '..') continue;
-                    echo "<tr>";
-                    echo "<td>";
                     $query = "SELECT username FROM users WHERE id=\"$folder\"";
                     $result = sqlconnect($query);
                     $username = mysqli_fetch_assoc($result)["username"];
-                    echo $username;
-                    echo "</td>";
+                    $user_array = array($username);
+
                     $outputs_dir = $submissions_dir . $folder . "/" . $problem_id . "/";
                     if (file_exists($outputs_dir))
                     {
@@ -198,18 +200,56 @@
                             {
                                 $myfile = fopen($dir, "r") or die("Unable to open file!");
                                 $text = fread($myfile, filesize($dir));
-                                $hash = md5($text);
-                                if(!array_key_exists ($hash,$outputs_map))
-                                {
-                                    $outputs_map[$hash] = [rand(0,255),rand(0,255),rand(0,255)];
-                                }
-                                $color = $outputs_map[$hash];
-                                echo "<td style=\"background-color:rgb({$color[0]},{$color[1]},{$color[2]})\">";
-                                echo $text;
-                                echo "</td>";
+                                array_push($user_array,$text);
                                 fclose($myfile);
                             }
                         }
+                    }
+                    array_push($outputs_matrix,$user_array);
+                    # Add the user_array to the color matrix (just to create a row of the same size)
+                    array_push($color_matrix,$user_array); 
+                }
+
+                # Count number of different values in each column and determine colors
+                include 'color_generator.php';
+                for($col = 1; $col < count($outputs_matrix[0]); $col++)
+                {
+                    # Count number of different hashes in each column
+                    $hashes_in_column = array();
+                    for($row = 0; $row < count($outputs_matrix);$row++)
+                    {
+                        $output_hash = md5($outputs_matrix[$row][$col]);
+                        array_push($hashes_in_column,$output_hash);
+                    }
+                    $unique_hashes = array_unique($hashes_in_column);
+                    # Generate colors and map hash to color
+                    $colors = generate_colors(count($unique_hashes));
+                    $hash_color_map = array();
+                    $color_index = 0;
+                    foreach($unique_hashes as $hash)
+                    {
+                        $hash_color_map[$hash] = $colors[$color_index];
+                        $color_index++;
+                    }
+
+                    # Fill a column in color matrix
+                    for($row = 0; $row < count($outputs_matrix); $row++)
+                    {
+                        $output_hash = md5($outputs_matrix[$row][$col]);
+                        $color_matrix[$row][$col] = $hash_color_map[$output_hash];
+                    }
+                }
+                
+                for($row = 0; $row < count($outputs_matrix); $row++)
+                {
+                    echo "<tr>";
+                        echo "<td>{$outputs_matrix[$row][0]}</td>";
+                    for($col = 1; $col < count($outputs_matrix[0]); $col++)
+                    {
+                        $color = $color_matrix[$row][$col];
+                        echo "<td style=\"background-color:rgb({$color[0]},{$color[1]},{$color[2]})\">";
+                        echo $outputs_matrix[$row][$col];
+                        echo "</td>";
                     }
                     echo "</tr>";
                 }
